@@ -106,19 +106,144 @@ def run_unit_commitment(inputs: dict, uc_hours: int = 168) -> tuple | None:
     return dispatch_df, summary_df
 
 
-def run_scenarios(dispatch_df, price_df) -> None:
-    """Phase 4 — scenario engine (placeholder)."""
-    print("[4/6] Scenario engine … (not yet implemented, skipping)")
+def run_scenarios(inputs: dict) -> dict | None:
+    """Phase 4 — scenario engine: run all scenarios and compare vs base."""
+    from scenarios.runner import run_all_scenarios, write_scenario_results
+    from scenarios.comparator import compare_all, print_comparison_report, write_comparison
+
+    print("[4/6] Running scenario engine …")
+    t0 = time.time()
+
+    results = run_all_scenarios(inputs, verbose=True)
+    written = write_scenario_results(results, project_root=PROJECT_ROOT)
+
+    summary_table, deltas = compare_all(results, base_name="base")
+    print_comparison_report(summary_table, deltas)
+    comparison_files = write_comparison(summary_table, deltas, project_root=PROJECT_ROOT)
+    written.extend(comparison_files)
+
+    for p in written:
+        print(f"      → {p.relative_to(PROJECT_ROOT)}")
+    print(f"      done ({_elapsed(t0)})")
+
+    return results
 
 
-def generate_charts(dispatch_df, price_df) -> None:
-    """Phase 5 — visualization (placeholder)."""
-    print("[5/6] Chart generation … (not yet implemented, skipping)")
+def generate_charts(
+    dispatch_df,
+    price_df,
+    inputs: dict,
+    scenario_results: dict | None = None,
+) -> None:
+    """Phase 5 — generate all 7 chart types."""
+    import matplotlib
+    matplotlib.use("Agg")  # non-interactive backend for file output
+
+    from visualization import (
+        plot_merit_order,
+        plot_duck_curve,
+        plot_seasonal_heatmap,
+        plot_marginal_fuel_heatmap,
+        plot_dispatch_stack,
+        plot_price_duration,
+        plot_scenario_comparison,
+        plot_backtest,
+    )
+
+    print("[5/6] Generating charts …")
+    t0 = time.time()
+    charts_dir = PROJECT_ROOT / "output" / "charts"
+    charts_dir.mkdir(parents=True, exist_ok=True)
+
+    # Chart 1: Merit order curve (use first timestamp's fuel prices)
+    fuel_row = inputs["fuel_prices"].iloc[0].to_dict()
+    plot_merit_order(
+        inputs["fleet"],
+        fuel_prices_row=fuel_row,
+        output_path=charts_dir / "01_merit_order_curve.png",
+    )
+    print("      → 01_merit_order_curve.png")
+
+    # Chart 2: Duck curve
+    plot_duck_curve(
+        price_df,
+        dispatch_df,
+        output_path=charts_dir / "02_duck_curve.png",
+    )
+    print("      → 02_duck_curve.png")
+
+    # Chart 3a: Seasonal heatmap (clearing price)
+    plot_seasonal_heatmap(
+        price_df,
+        output_path=charts_dir / "03a_seasonal_price_heatmap.png",
+    )
+    print("      → 03a_seasonal_price_heatmap.png")
+
+    # Chart 3b: Seasonal heatmap (marginal fuel)
+    plot_marginal_fuel_heatmap(
+        price_df,
+        output_path=charts_dir / "03b_marginal_fuel_heatmap.png",
+    )
+    print("      → 03b_marginal_fuel_heatmap.png")
+
+    # Chart 4: Dispatch stack (representative days)
+    plot_dispatch_stack(
+        price_df,
+        dispatch_df,
+        output_path=charts_dir / "04_dispatch_stack.png",
+    )
+    print("      → 04_dispatch_stack.png")
+
+    # Chart 5: Price duration curve
+    prices_dict = {"base": price_df}
+    if scenario_results:
+        for name, res in scenario_results.items():
+            if name != "base":
+                prices_dict[name] = res["prices"]
+    plot_price_duration(
+        prices_dict,
+        output_path=charts_dir / "05_price_duration_curve.png",
+    )
+    print("      → 05_price_duration_curve.png")
+
+    # Chart 6: Scenario comparison dashboard
+    if scenario_results:
+        from scenarios.comparator import compare_all
+        summary_table, _ = compare_all(scenario_results, base_name="base")
+        plot_scenario_comparison(
+            summary_table,
+            output_path=charts_dir / "06_scenario_comparison.png",
+        )
+        print("      → 06_scenario_comparison.png")
+
+    # Chart 7: Backtest
+    fig = plot_backtest(
+        price_df,
+        output_path=charts_dir / "07_backtest.png",
+    )
+    if fig is not None:
+        print("      → 07_backtest.png")
+    else:
+        print("      → 07_backtest.png (skipped — no actual JEPX prices)")
+
+    print(f"      done ({_elapsed(t0)})")
 
 
-def run_backtest(price_df) -> None:
-    """Phase 6 — backtest against JEPX (placeholder)."""
-    print("[6/6] Backtest … (not yet implemented, skipping)")
+def run_backtest_phase(price_df) -> None:
+    """Phase 6 — backtest against JEPX actuals."""
+    from backtest.price_comparison import run_backtest as _run_backtest
+
+    print("[6/6] Running backtest …")
+    t0 = time.time()
+    result = _run_backtest(price_df, verbose=True, project_root=PROJECT_ROOT)
+
+    if result is None:
+        print("      Backtest skipped — no actual JEPX prices available.")
+    else:
+        for p in result.get("written_files", []):
+            print(f"      → {p.relative_to(PROJECT_ROOT)}")
+
+    print(f"      done ({_elapsed(t0)})")
 
 
 # ── orchestrator ──────────────────────────────────────────────────────────────
@@ -157,17 +282,17 @@ def run_pipeline(up_to: str = "backtest", uc_hours: int = 168, skip_uc: bool = F
     if cutoff < 2:
         return
 
-    # Step 4 — scenarios (placeholder)
-    run_scenarios(dispatch_df, price_df)
+    # Step 4 — scenarios
+    scenario_results = run_scenarios(inputs)
 
-    # Step 5 — charts (placeholder)
-    generate_charts(dispatch_df, price_df)
+    # Step 5 — charts
+    generate_charts(dispatch_df, price_df, inputs, scenario_results)
 
     if cutoff < 4:
         return
 
-    # Step 6 — backtest (placeholder)
-    run_backtest(price_df)
+    # Step 6 — backtest
+    run_backtest_phase(price_df)
 
     print()
     print("Pipeline complete.")
