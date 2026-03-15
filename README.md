@@ -44,6 +44,14 @@ Analysis period: **FY2025** (April 2025 – March 2026).
 
 ## Key Results (Base Case)
 
+### Merit Order Curve
+
+![Merit Order Curve](output/charts/01_merit_order_curve.png)
+
+### Duck Curve
+
+![Duck Curve](output/charts/02_duck_curve.png)
+
 ### Generation Mix (805 TWh total)
 
 | Fuel | Generation (TWh) | Share | Capacity (GW) | Capacity Factor |
@@ -58,6 +66,10 @@ Analysis period: **FY2025** (April 2025 – March 2026).
 
 LNG OCGT and oil were not dispatched — the merit order placed them above the demand curve in all intervals.
 
+### Dispatch Stack
+
+![Dispatch Stack](output/charts/04_dispatch_stack.png)
+
 ### Simulated Clearing Price
 
 | Metric | Value |
@@ -68,6 +80,22 @@ LNG OCGT and oil were not dispatched — the merit order placed them above the d
 | Max | 15.31 JPY/kWh |
 | Marginal fuel (most frequent) | LNG CCGT (56%), Coal (33%), Biomass (10%) |
 
+### Seasonal Price Heatmap
+
+![Seasonal Price Heatmap](output/charts/03a_seasonal_price_heatmap.png)
+
+### Marginal Fuel Heatmap
+
+![Marginal Fuel Heatmap](output/charts/03b_marginal_fuel_heatmap.png)
+
+### Price Duration Curve
+
+![Price Duration Curve](output/charts/05_price_duration_curve.png)
+
+### Scenario Comparison
+
+![Scenario Comparison](output/charts/06_scenario_comparison.png)
+
 ### Backtest vs JEPX Actuals
 
 | Metric | Value |
@@ -76,6 +104,8 @@ LNG OCGT and oil were not dispatched — the merit order placed them above the d
 | MAE | 2.44 JPY/kWh |
 | Correlation | 0.617 |
 | Bias | +0.69 JPY/kWh (slight overestimate) |
+
+![Backtest](output/charts/07_backtest.png)
 
 The model captures the broad price level and diurnal pattern, but underpredicts price spikes and overpredicts off-peak prices. Expected deviation sources include:
 
@@ -118,8 +148,7 @@ Japan Electric Market/
 │   ├── results/                 # Dispatch & price CSVs
 │   └── charts/                  # Generated figures
 ├── notebooks/                   # Analysis notebooks
-├── requirements.txt
-└── JP-Power-Dispatch-Economics-DevPlan.md
+└── requirements.txt
 ```
 
 ## How to Run
