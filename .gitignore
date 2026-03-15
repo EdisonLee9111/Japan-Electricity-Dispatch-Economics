@@ -13,6 +13,10 @@ venv/
 # Claude auxiliary files
 .claude/
 
+# Dev planning files (local only)
+Implementation-Checklist.md
+JP-Power-Dispatch-Economics-DevPlan.md
+
 # OS
 .DS_Store
 Thumbs.db
