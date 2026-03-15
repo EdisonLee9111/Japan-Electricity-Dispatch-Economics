@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+
+# Claude auxiliary files
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db

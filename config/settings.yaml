@@ -1,0 +1,76 @@
+# ==============================================================================
+# Japan Electricity Dispatch Economics — Project Settings
+# ==============================================================================
+# Core modeling decisions fixed for MVP.  Change these only when upgrading
+# to a new phase (e.g. multi-region, 30-min granularity, LP/UC).
+# ==============================================================================
+
+project:
+  name: "Japan Electricity Dispatch Economics"
+  version: "0.1.0"
+
+# ── Temporal ──────────────────────────────────────────────────────────────────
+time:
+  granularity: "hourly"          # MVP: hourly (aggregated from 30-min raw)
+  analysis_period:
+    start: "2025-04-01"
+    end: "2026-03-31"            # FY2025
+
+# ── Spatial ───────────────────────────────────────────────────────────────────
+spatial:
+  model: "copper_plate"          # single national node, no transmission
+  note: "Regional interconnector constraints ignored for MVP"
+
+# ── Price target ──────────────────────────────────────────────────────────────
+backtest:
+  target_price: "system_price"   # システムプライス
+  secondary_price: "tokyo_price" # エリアプライス東京 (future enhancement)
+
+# ── Fleet modeling ────────────────────────────────────────────────────────────
+fleet:
+  aggregation: "fuel_type"       # not individual plant
+  fuel_types:
+    - nuclear
+    - coal
+    - lng_ccgt
+    - lng_ocgt
+    - oil
+    - hydro
+    - solar
+    - wind
+    - biomass
+
+# ── Solver roadmap ────────────────────────────────────────────────────────────
+solver:
+  level1: "simple_merit_order"   # current MVP
+  level2: "lp_unit_commitment"   # future enhancement
+
+# ── Units ─────────────────────────────────────────────────────────────────────
+units:
+  power: "MW"
+  energy: "MWh"
+  price_internal: "JPY/MWh"
+  price_display: "JPY/kWh"
+
+# ── Currency ──────────────────────────────────────────────────────────────────
+currency:
+  usd_jpy: 150.0                 # fixed exchange rate
+
+# ── Installed capacity overrides (MW) ─────────────────────────────────────────
+capacity_overrides:
+  solar_mw: 80000
+  wind_mw: 5000
+
+# ── Market price bounds (JPY/MWh) ────────────────────────────────────────────
+market:
+  price_floor_jpy_mwh: 0.0
+  price_cap_jpy_mwh: 99990.0    # 99.99 JPY/kWh historical JEPX cap
+
+# ── Paths (relative to project root) ─────────────────────────────────────────
+paths:
+  raw_data: "data/raw"
+  processed_data: "data/processed"
+  output_results: "output/results"
+  output_charts: "output/charts"
+  scenarios_dir: "scenarios"
+  assumptions: "data/raw/assumptions.yml"

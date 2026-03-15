@@ -1,0 +1,163 @@
+# ==============================================================================
+# Japan Electricity Dispatch Economics - Unified Technical & Economic Assumptions
+# ==============================================================================
+# 说明：
+# 本文件定义日本电力系统按燃料类型聚合（fleet-level）的技术与经济假设。
+# 已将原先重复的 `generators` 顶层结构合并为单一有效 YAML 映射，
+# 便于后续由 `process_raw.py` 统一读取并生成 `fleet.csv`。
+#
+# 主要参考来源（沿用原始说明）：
+# - NREL ATB 2024
+# - IEA World Energy Outlook 2025
+# - Lazard LCOE v16.0
+# - OCCTO / METI 日本装机容量参考
+# ==============================================================================
+
+generators:
+  nuclear:
+    installed_capacity_mw: 10000.0
+    min_stable_generation_pct: 0.50
+    heat_rate_mmbtu_per_mwh: 10.46
+    variable_om_usd_per_mwh: 3.00
+    startup_cost_cold_usd_per_mw: 50.0
+    startup_cost_warm_usd_per_mw: 50.0
+    startup_cost_hot_usd_per_mw: 50.0
+    min_up_time_hours: 168
+    min_down_time_hours: 48
+    ramp_rate_pct_per_hour: 0.05
+    must_run: true
+    capital_cost_usd_per_kw: 4700.0
+    fixed_om_usd_per_kw_yr: 120.0
+    fuel_cost_usd_per_mmbtu: 0.70
+
+  coal:
+    installed_capacity_mw: 45000.0
+    min_stable_generation_pct: 0.40
+    heat_rate_mmbtu_per_mwh: 9.20
+    variable_om_usd_per_mwh: 4.50
+    startup_cost_cold_usd_per_mw: 100.0
+    startup_cost_warm_usd_per_mw: 70.0
+    startup_cost_hot_usd_per_mw: 40.0
+    min_up_time_hours: 24
+    min_down_time_hours: 8
+    ramp_rate_pct_per_hour: 0.25
+    must_run: false
+    capital_cost_usd_per_kw: 2100.0
+    fixed_om_usd_per_kw_yr: 40.0
+    fuel_cost_usd_per_mmbtu: 4.50
+
+  lng_ccgt:
+    installed_capacity_mw: 65000.0
+    min_stable_generation_pct: 0.30
+    heat_rate_mmbtu_per_mwh: 6.60
+    variable_om_usd_per_mwh: 2.50
+    startup_cost_cold_usd_per_mw: 60.0
+    startup_cost_warm_usd_per_mw: 40.0
+    startup_cost_hot_usd_per_mw: 25.0
+    min_up_time_hours: 4
+    min_down_time_hours: 2
+    ramp_rate_pct_per_hour: 0.60
+    must_run: false
+    capital_cost_usd_per_kw: 1100.0
+    fixed_om_usd_per_kw_yr: 15.0
+    fuel_cost_usd_per_mmbtu: 12.00
+
+  lng_ocgt:
+    installed_capacity_mw: 15000.0
+    min_stable_generation_pct: 0.20
+    heat_rate_mmbtu_per_mwh: 9.80
+    variable_om_usd_per_mwh: 4.50
+    startup_cost_cold_usd_per_mw: 30.0
+    startup_cost_warm_usd_per_mw: 20.0
+    startup_cost_hot_usd_per_mw: 10.0
+    min_up_time_hours: 1
+    min_down_time_hours: 1
+    ramp_rate_pct_per_hour: 1.00
+    must_run: false
+    capital_cost_usd_per_kw: 750.0
+    fixed_om_usd_per_kw_yr: 10.0
+    fuel_cost_usd_per_mmbtu: 12.00
+
+  oil:
+    installed_capacity_mw: 15000.0
+    min_stable_generation_pct: 0.20
+    heat_rate_mmbtu_per_mwh: 11.00
+    variable_om_usd_per_mwh: 6.00
+    startup_cost_cold_usd_per_mw: 80.0
+    startup_cost_warm_usd_per_mw: 60.0
+    startup_cost_hot_usd_per_mw: 40.0
+    min_up_time_hours: 4
+    min_down_time_hours: 4
+    ramp_rate_pct_per_hour: 0.40
+    must_run: false
+    capital_cost_usd_per_kw: 900.0
+    fixed_om_usd_per_kw_yr: 20.0
+    fuel_cost_usd_per_mmbtu: 18.00
+
+  hydro:
+    installed_capacity_mw: 22000.0
+    min_stable_generation_pct: 0.0
+    heat_rate_mmbtu_per_mwh: 0.0
+    variable_om_usd_per_mwh: 0.0
+    startup_cost_cold_usd_per_mw: 0.0
+    startup_cost_warm_usd_per_mw: 0.0
+    startup_cost_hot_usd_per_mw: 0.0
+    min_up_time_hours: 0
+    min_down_time_hours: 0
+    ramp_rate_pct_per_hour: 1.00
+    must_run: false
+    capital_cost_usd_per_kw: 3000.0
+    fixed_om_usd_per_kw_yr: 45.0
+    fuel_cost_usd_per_mmbtu: 0.0
+
+  solar:
+    installed_capacity_mw: 80000.0
+    min_stable_generation_pct: 0.0
+    heat_rate_mmbtu_per_mwh: 0.0
+    variable_om_usd_per_mwh: 0.0
+    startup_cost_cold_usd_per_mw: 0.0
+    startup_cost_warm_usd_per_mw: 0.0
+    startup_cost_hot_usd_per_mw: 0.0
+    min_up_time_hours: 0
+    min_down_time_hours: 0
+    ramp_rate_pct_per_hour: 1.00
+    must_run: true
+    capital_cost_usd_per_kw: 660.0
+    fixed_om_usd_per_kw_yr: 12.0
+    fuel_cost_usd_per_mmbtu: 0.0
+
+  wind:
+    installed_capacity_mw: 5000.0
+    min_stable_generation_pct: 0.0
+    heat_rate_mmbtu_per_mwh: 0.0
+    variable_om_usd_per_mwh: 0.0
+    startup_cost_cold_usd_per_mw: 0.0
+    startup_cost_warm_usd_per_mw: 0.0
+    startup_cost_hot_usd_per_mw: 0.0
+    min_up_time_hours: 0
+    min_down_time_hours: 0
+    ramp_rate_pct_per_hour: 1.00
+    must_run: true
+    capital_cost_usd_per_kw: 1450.0
+    fixed_om_usd_per_kw_yr: 40.0
+    fuel_cost_usd_per_mmbtu: 0.0
+
+  biomass:
+    installed_capacity_mw: 5000.0
+    min_stable_generation_pct: 0.30
+    heat_rate_mmbtu_per_mwh: 12.00
+    variable_om_usd_per_mwh: 5.00
+    startup_cost_cold_usd_per_mw: 80.0
+    startup_cost_warm_usd_per_mw: 50.0
+    startup_cost_hot_usd_per_mw: 30.0
+    min_up_time_hours: 12
+    min_down_time_hours: 6
+    ramp_rate_pct_per_hour: 0.20
+    must_run: false
+    capital_cost_usd_per_kw: 3200.0
+    fixed_om_usd_per_kw_yr: 100.0
+    fuel_cost_usd_per_mmbtu: 6.00
+
+global_assumptions:
+  carbon_price_usd_per_ton: 0.0
+  currency_exchange_rate_jpy_usd: 150.0
