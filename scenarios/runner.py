@@ -58,6 +58,8 @@ def apply_scenario(
             mask = fleet["fuel_type"] == fuel_type
             if mask.any():
                 fleet.loc[mask, "installed_capacity_mw"] = gw * 1000.0
+                af = fleet.loc[mask, "availability_factor"].values[0] if "availability_factor" in fleet.columns else 1.0
+                fleet.loc[mask, "available_capacity_mw"] = gw * 1000.0 * af
 
     modified["fleet"] = fleet
 

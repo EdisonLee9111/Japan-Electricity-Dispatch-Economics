@@ -1,10 +1,11 @@
 fuel_type,generation_delta_twh,capacity_factor_delta
 biomass,0.0,0.0
-coal,0.0,0.0
+coal_old,0.0,0.0
+coal_usc,0.0,0.0
 hydro,0.0,0.0
-lng_ccgt,-35.603007,-0.06692797766749381
-lng_ocgt,0.0,0.0
+lng_ccgt,0.0,0.0
+lng_ocgt,-0.9874875000000001,-0.008044049364613882
 nuclear,0.0,0.0
-oil,35.603007,0.2900212365591398
+oil,0.9874875,0.00804404936461388
 solar,0.0,0.0
 wind,0.0,0.0

@@ -39,7 +39,7 @@ except ImportError:
 
 
 # Fleets that participate in UC (have on/off decisions)
-UC_FUEL_TYPES = {"coal", "lng_ccgt", "lng_ocgt", "oil", "biomass", "hydro"}
+UC_FUEL_TYPES = {"coal_usc", "coal_old", "lng_ccgt", "lng_ocgt", "oil", "biomass", "hydro"}
 
 # Fleets dispatched outside UC (fixed or must-take)
 FIXED_FUEL_TYPES = RENEWABLE_FUELS | MUST_RUN_FUELS
@@ -284,7 +284,7 @@ def run_unit_commitment(
             if t == 0:
                 # Assume major fleets start online (realistic for base case)
                 # Small/peaking fleets (OCGT, oil) start offline
-                initial_online = 1 if fuel in {"coal", "lng_ccgt", "biomass", "hydro"} else 0
+                initial_online = 1 if fuel in {"coal_usc", "coal_old", "lng_ccgt", "biomass", "hydro"} else 0
                 prob += (
                     v[fuel][t] >= u[fuel][t] - initial_online,
                     f"startup_{fuel}_{t}",

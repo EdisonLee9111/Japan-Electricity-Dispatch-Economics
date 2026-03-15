@@ -31,6 +31,25 @@ except ImportError:  # pragma: no cover
 
 EPSILON = 1e-9
 
+# Months when planned maintenance is concentrated (spring/autumn shoulder)
+SHOULDER_MONTHS = {4, 5, 10, 11}
+
+
+def _seasonal_available_mw(fleet_row, month: int) -> float:
+    """Compute available capacity accounting for seasonal outage distribution.
+
+    Peak months (summer/winter): only forced outage deducted.
+    Shoulder months (spring/autumn): both forced + planned outage deducted.
+    """
+    installed = float(fleet_row.installed_capacity_mw)
+    forced = float(getattr(fleet_row, "forced_outage_rate", 0.0) or 0.0)
+    planned = float(getattr(fleet_row, "planned_outage_rate", 0.0) or 0.0)
+
+    if month in SHOULDER_MONTHS:
+        return installed * (1.0 - forced - planned)
+    else:
+        return installed * (1.0 - forced)
+
 
 def _resolve_project_root(project_root: str | Path | None = None) -> Path:
     """Resolve repository root path."""
@@ -199,16 +218,19 @@ def _solve_single_timestamp(
 
     demand_mw = float(row["demand_mw"])
 
+    # Determine month for seasonal availability
+    ts = row.get("timestamp") or row.get("datetime")
+    month = pd.Timestamp(ts).month if ts else 6  # default to peak if unknown
+
     for fleet_row in merit.itertuples(index=False):
         fuel = fleet_row.fuel_type
-        installed_mw = float(fleet_row.installed_capacity_mw)
 
         if fuel == "solar":
-            available_mw = installed_mw * float(row.get("solar_cf", 0.0))
+            available_mw = float(fleet_row.installed_capacity_mw) * float(row.get("solar_cf", 0.0))
         elif fuel == "wind":
-            available_mw = installed_mw * float(row.get("wind_cf", 0.0))
+            available_mw = float(fleet_row.installed_capacity_mw) * float(row.get("wind_cf", 0.0))
         else:
-            available_mw = installed_mw
+            available_mw = _seasonal_available_mw(fleet_row, month)
 
         available_by_fuel[fuel] = max(available_mw, 0.0)
 
@@ -227,7 +249,17 @@ def _solve_single_timestamp(
             nuclear_output_mw += available_by_fuel[fuel]
             dispatch_by_fuel[fuel] = available_by_fuel[fuel]
 
-    base_supply_mw = sum(renewable_available.values()) + nuclear_output_mw
+    # ── must_run_mw: contractual minimum dispatch (e.g. LNG take-or-pay) ──
+    contract_must_run_mw = 0.0
+    for fleet_row in merit.itertuples(index=False):
+        fuel = fleet_row.fuel_type
+        mr_mw = float(getattr(fleet_row, "must_run_mw", 0.0) or 0.0)
+        if mr_mw > 0 and fuel not in MUST_RUN_FUELS and fuel not in RENEWABLE_FUELS:
+            forced = min(mr_mw, available_by_fuel.get(fuel, 0.0))
+            dispatch_by_fuel[fuel] = forced
+            contract_must_run_mw += forced
+
+    base_supply_mw = sum(renewable_available.values()) + nuclear_output_mw + contract_must_run_mw
     renewable_curtailment_mw = 0.0
     noncurtailable_oversupply_mw = 0.0
 
@@ -255,9 +287,12 @@ def _solve_single_timestamp(
             break
 
         fuel = fleet_row.fuel_type
-        available_mw = available_by_fuel[fuel]
-        dispatch_mw = min(available_mw, residual_demand_mw)
-        dispatch_by_fuel[fuel] = dispatch_mw
+        already_dispatched = dispatch_by_fuel.get(fuel, 0.0)
+        remaining_capacity = available_by_fuel[fuel] - already_dispatched
+        if remaining_capacity <= EPSILON:
+            continue
+        dispatch_mw = min(remaining_capacity, residual_demand_mw)
+        dispatch_by_fuel[fuel] = already_dispatched + dispatch_mw
         residual_demand_mw -= dispatch_mw
 
     residual_demand_mw = max(residual_demand_mw, 0.0)

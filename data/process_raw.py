@@ -469,11 +469,22 @@ def build_fleet():
             )
 
         installed_capacity_mw = float(params["installed_capacity_mw"])
+        forced_outage_rate = float(params.get("forced_outage_rate", 0.0))
+        planned_outage_rate = float(params.get("planned_outage_rate", 0.0))
+        # Annual average availability (for backward compat / summary)
+        availability_factor = 1.0 - forced_outage_rate - planned_outage_rate
+        available_capacity_mw = installed_capacity_mw * availability_factor
         ramp_rate_pct_per_hour = float(params["ramp_rate_pct_per_hour"])
+        must_run_mw = float(params.get("must_run_mw", 0.0))
 
         row = {
             "fuel_type": fuel_type,
             "installed_capacity_mw": installed_capacity_mw,
+            "forced_outage_rate": forced_outage_rate,
+            "planned_outage_rate": planned_outage_rate,
+            "availability_factor": availability_factor,
+            "available_capacity_mw": available_capacity_mw,
+            "must_run_mw": must_run_mw,
             "min_stable_generation_pct": float(params["min_stable_generation_pct"]),
             "heat_rate_mmbtu_per_mwh": float(params["heat_rate_mmbtu_per_mwh"]),
             "variable_om_usd_per_mwh": float(params["variable_om_usd_per_mwh"]),
@@ -513,6 +524,17 @@ def build_fleet():
         fleet_rows.append(row)
 
     fleet = pd.DataFrame(fleet_rows)
+
+    # ── Carbon cost (GX-ETS) ─────────────────────────────────────────────
+    carbon_price_jpy = float(global_assumptions.get("carbon_price_jpy_per_ton", 0.0))
+    emission_factors = config.get("emission_factors_tco2_per_mwh", {})
+    fleet["emission_factor_tco2_per_mwh"] = fleet["fuel_type"].map(
+        lambda ft: float(emission_factors.get(ft, 0.0))
+    )
+    fleet["carbon_cost_jpy_per_mwh"] = (
+        fleet["emission_factor_tco2_per_mwh"] * carbon_price_jpy
+    )
+    log(f"     碳价：{carbon_price_jpy:.0f} JPY/tCO2 (GX-ETS)")
 
     # 按 merit order 参考排序（must-run 优先，再按 heat rate 升序）
     fleet = fleet.sort_values(

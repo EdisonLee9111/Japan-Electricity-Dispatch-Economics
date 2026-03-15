@@ -13,7 +13,9 @@ import matplotlib.pyplot as plt
 
 FUEL_COLORS: dict[str, str] = {
     "nuclear": "#7B2D8E",       # purple
-    "coal": "#4A4A4A",          # dark gray
+    "coal": "#4A4A4A",          # dark gray (legacy)
+    "coal_usc": "#4A4A4A",     # dark gray — USC/A-USC modern coal
+    "coal_old": "#7A7A7A",     # lighter gray — subcritical old coal
     "lng_ccgt": "#E67E22",      # orange
     "lng_ocgt": "#F5B041",      # light orange
     "oil": "#8B4513",           # brown
@@ -27,6 +29,8 @@ FUEL_COLORS: dict[str, str] = {
 FUEL_STACK_ORDER: list[str] = [
     "nuclear",
     "coal",
+    "coal_usc",
+    "coal_old",
     "lng_ccgt",
     "lng_ocgt",
     "oil",
@@ -39,6 +43,8 @@ FUEL_STACK_ORDER: list[str] = [
 FUEL_LABELS: dict[str, str] = {
     "nuclear": "Nuclear",
     "coal": "Coal",
+    "coal_usc": "Coal (USC)",
+    "coal_old": "Coal (Old Sub-C)",
     "lng_ccgt": "LNG CCGT",
     "lng_ocgt": "LNG OCGT",
     "oil": "Oil",

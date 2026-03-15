@@ -31,7 +31,8 @@ fleet:
   aggregation: "fuel_type"       # not individual plant
   fuel_types:
     - nuclear
-    - coal
+    - coal_usc
+    - coal_old
     - lng_ccgt
     - lng_ocgt
     - oil

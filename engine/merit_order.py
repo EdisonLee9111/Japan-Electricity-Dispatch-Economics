@@ -73,7 +73,7 @@ def resolve_fuel_price_jpy_mmbtu(
             raise ValueError("Missing LNG price column 'lng_japan_jpy_mmbtu'.")
         return float(value), "lng_japan_jpy_mmbtu"
 
-    if fuel_type == "coal":
+    if fuel_type.startswith("coal"):
         value = fuel_price_row.get("coal_aus_jpy_mt")
         return coal_price_jpy_mmbtu(float(value)), "coal_aus_jpy_mt_to_jpy_mmbtu"
 
@@ -127,9 +127,11 @@ def build_merit_order(
     merit["fuel_price_jpy_mmbtu"] = resolved.apply(lambda x: x[0])
     merit["fuel_price_source"] = resolved.apply(lambda x: x[1])
 
+    carbon_cost = merit["carbon_cost_jpy_per_mwh"] if "carbon_cost_jpy_per_mwh" in merit.columns else 0.0
     merit["marginal_cost_jpy_mwh"] = (
         merit["fuel_price_jpy_mmbtu"] * merit["heat_rate_mmbtu_per_mwh"]
         + merit["variable_om_jpy_mwh"]
+        + carbon_cost
     )
 
     merit["dispatch_group"] = "dispatchable"
