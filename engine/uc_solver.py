@@ -22,7 +22,9 @@ Requires: pip install pulp
 
 from __future__ import annotations
 
+import logging
 import time
+import warnings
 from pathlib import Path
 from typing import Iterable
 
@@ -30,12 +32,16 @@ import numpy as np
 import pandas as pd
 import pulp
 
+logger = logging.getLogger(__name__)
+
 try:
     from .merit_order import MUST_RUN_FUELS, RENEWABLE_FUELS, build_merit_order
     from .dispatch_solver import load_processed_inputs, _prepare_model_table, _infer_interval_hours
+    from .clearing_price import PRICE_FLOOR_JPY_MWH, PRICE_CAP_JPY_MWH
 except ImportError:
     from merit_order import MUST_RUN_FUELS, RENEWABLE_FUELS, build_merit_order
     from dispatch_solver import load_processed_inputs, _prepare_model_table, _infer_interval_hours
+    from clearing_price import PRICE_FLOOR_JPY_MWH, PRICE_CAP_JPY_MWH
 
 
 # Fleets that participate in UC (have on/off decisions)
@@ -337,11 +343,24 @@ def run_unit_commitment(
 
     status_str = pulp.LpStatus[status]
     obj_value = pulp.value(prob.objective) if status == 1 else None
+    hit_time_limit = solve_time >= (time_limit_seconds - 1)
 
     if msg:
         print(f"  Solver status: {status_str}")
         print(f"  Objective value: {obj_value:,.0f} JPY" if obj_value else "  No solution")
         print(f"  Solve time: {solve_time:.1f}s")
+
+    if hit_time_limit:
+        warn_msg = (
+            f"UC solver hit the time limit ({time_limit_seconds}s). "
+            f"Solution status: {status_str}. "
+            f"Results may be sub-optimal — consider increasing --uc-hours "
+            f"time limit or reducing the window size."
+        )
+        warnings.warn(warn_msg, stacklevel=2)
+        logger.warning(warn_msg)
+        if msg:
+            print(f"  ⚠ WARNING: {warn_msg}")
 
     solve_info = {
         "status": status_str,
@@ -350,9 +369,13 @@ def run_unit_commitment(
         "num_variables": prob.numVariables(),
         "num_constraints": prob.numConstraints(),
         "window_hours": T,
+        "hit_time_limit": hit_time_limit,
     }
 
     if status != 1:  # Not optimal
+        if msg:
+            print(f"  ⚠ WARNING: Solver did not find an optimal solution (status={status_str}).")
+        logger.warning("UC solver status=%s — no optimal solution found.", status_str)
         return pd.DataFrame(), pd.DataFrame(), solve_info
 
     # ── Extract results ──────────────────────────────────────────────────────
@@ -439,11 +462,13 @@ def run_unit_commitment(
                 marginal_cost = mc
                 marginal_fuel = fuel
 
-        # Summary row
-        clearing_price = marginal_cost if marginal_fuel else 0.0
+        # Summary row — apply market price bounds
+        clearing_price = marginal_cost if marginal_fuel else PRICE_FLOOR_JPY_MWH
         if unserved_mw > 0.1:
-            clearing_price = 99_990.0
+            clearing_price = PRICE_CAP_JPY_MWH
             marginal_fuel = "unserved_energy"
+        else:
+            clearing_price = max(clearing_price, PRICE_FLOOR_JPY_MWH)
 
         summary_row = {
             "timestamp": ts,

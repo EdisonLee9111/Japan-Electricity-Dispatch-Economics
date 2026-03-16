@@ -16,6 +16,7 @@ The solver works directly with the current processed dataset granularity
 """
 
 import argparse
+import logging
 from pathlib import Path
 from typing import Iterable
 
@@ -28,11 +29,18 @@ except ImportError:  # pragma: no cover
     from clearing_price import PRICE_CAP_JPY_MWH, determine_clearing_price
     from merit_order import MUST_RUN_FUELS, RENEWABLE_FUELS, build_merit_order
 
+try:
+    from config import get_dispatch_config
+    _dispatch_cfg = get_dispatch_config()
+except ImportError:
+    _dispatch_cfg = {"shoulder_months": {4, 5, 10, 11}}
+
+logger = logging.getLogger(__name__)
 
 EPSILON = 1e-9
 
 # Months when planned maintenance is concentrated (spring/autumn shoulder)
-SHOULDER_MONTHS = {4, 5, 10, 11}
+SHOULDER_MONTHS: set[int] = _dispatch_cfg["shoulder_months"]
 
 
 def _seasonal_available_mw(fleet_row, month: int) -> float:
@@ -139,6 +147,61 @@ def load_processed_inputs(
     return inputs
 
 
+def _validate_timestamp_alignment(
+    demand: pd.DataFrame,
+    renewables: pd.DataFrame,
+    fuel_prices: pd.DataFrame,
+) -> None:
+    """Check timestamp coverage across input DataFrames and warn on misalignment."""
+    d_ts = set(demand["timestamp"])
+    r_ts = set(renewables["timestamp"])
+    f_ts = set(fuel_prices["timestamp"])
+
+    overlap = d_ts & r_ts & f_ts
+
+    if not overlap:
+        raise ValueError(
+            "No overlapping timestamps across demand, renewables, and fuel prices.\n"
+            f"  demand:     {min(d_ts)} → {max(d_ts)} ({len(d_ts)} rows)\n"
+            f"  renewables: {min(r_ts)} → {max(r_ts)} ({len(r_ts)} rows)\n"
+            f"  fuel_prices:{min(f_ts)} → {max(f_ts)} ({len(f_ts)} rows)"
+        )
+
+    # Warn about dropped rows
+    demand_only = d_ts - overlap
+    renew_only = r_ts - overlap
+    fuel_only = f_ts - overlap
+
+    if demand_only:
+        logger.warning(
+            "%d demand timestamps have no matching renewables/fuel data "
+            "and will be dropped (e.g. %s)",
+            len(demand_only), min(demand_only),
+        )
+    if renew_only:
+        logger.warning(
+            "%d renewable timestamps have no matching demand/fuel data "
+            "and will be dropped (e.g. %s)",
+            len(renew_only), min(renew_only),
+        )
+    if fuel_only:
+        logger.warning(
+            "%d fuel_price timestamps have no matching demand/renewable data "
+            "and will be dropped (e.g. %s)",
+            len(fuel_only), min(fuel_only),
+        )
+
+    # Check if fuel prices end before demand data
+    fuel_max = max(f_ts)
+    demand_max = max(d_ts)
+    if fuel_max < demand_max:
+        logger.warning(
+            "Fuel prices end at %s but demand data extends to %s — "
+            "timestamps beyond fuel coverage will be dropped from the model.",
+            fuel_max, demand_max,
+        )
+
+
 def _prepare_model_table(inputs: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Merge all time-series inputs into one aligned model table."""
     demand = inputs["demand"][["timestamp", "demand"]].rename(
@@ -150,6 +213,9 @@ def _prepare_model_table(inputs: dict[str, pd.DataFrame]) -> pd.DataFrame:
     fuel_prices = inputs["fuel_prices"][
         ["timestamp", "lng_japan_jpy_mmbtu", "coal_aus_jpy_mt", "crude_wti_jpy_bbl"]
     ]
+
+    # Validate alignment before merging
+    _validate_timestamp_alignment(demand, renewables, fuel_prices)
 
     model_df = demand.merge(
         renewables, on="timestamp", how="inner", validate="one_to_one"

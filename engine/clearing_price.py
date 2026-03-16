@@ -2,9 +2,16 @@
 
 from __future__ import annotations
 
-PRICE_FLOOR_JPY_MWH = 0.0
-# Historical JEPX cap often referenced as 99.99 JPY/kWh.
-PRICE_CAP_JPY_MWH = 99_990.0
+try:
+    from config import get_market_config
+    _market_cfg = get_market_config()
+except ImportError:
+    _market_cfg = {"price_floor_jpy_mwh": 100.0, "price_cap_jpy_mwh": 99_990.0}
+
+# JEPX minimum bid price: 0.10 JPY/kWh = 100 JPY/MWh
+PRICE_FLOOR_JPY_MWH: float = _market_cfg["price_floor_jpy_mwh"]
+# Historical JEPX cap: 99.99 JPY/kWh = 99,990 JPY/MWh
+PRICE_CAP_JPY_MWH: float = _market_cfg["price_cap_jpy_mwh"]
 
 
 def clamp_price(

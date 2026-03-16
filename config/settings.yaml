@@ -62,9 +62,21 @@ capacity_overrides:
   solar_mw: 80000
   wind_mw: 5000
 
+# ── Dispatch logic ──────────────────────────────────────────────────────────
+dispatch:
+  # Fuels dispatched as must-take (zero curtailment cost, dispatched first)
+  renewable_fuels:
+    - solar
+    - wind
+  # Fuels that run at constant output regardless of merit order
+  must_run_fuels:
+    - nuclear
+  # Months when planned maintenance is concentrated (spring/autumn shoulder)
+  shoulder_months: [4, 5, 10, 11]
+
 # ── Market price bounds (JPY/MWh) ────────────────────────────────────────────
 market:
-  price_floor_jpy_mwh: 0.0
+  price_floor_jpy_mwh: 100.0    # 0.10 JPY/kWh JEPX minimum bid price
   price_cap_jpy_mwh: 99990.0    # 99.99 JPY/kWh historical JEPX cap
 
 # ── Paths (relative to project root) ─────────────────────────────────────────

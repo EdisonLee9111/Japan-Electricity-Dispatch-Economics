@@ -25,6 +25,15 @@ from typing import Mapping
 
 import pandas as pd
 
+try:
+    from config import get_dispatch_config
+    _dispatch_cfg = get_dispatch_config()
+except ImportError:
+    _dispatch_cfg = {
+        "renewable_fuels": {"solar", "wind"},
+        "must_run_fuels": {"nuclear"},
+    }
+
 COAL_HEAT_CONTENT_MMBTU_PER_MT = 23.8
 OIL_ENERGY_CONTENT_MMBTU_PER_BBL = 5.8
 
@@ -36,8 +45,8 @@ FIXED_FUEL_PRICE_JPY_MMBTU = {
     "wind": 0.0,
 }
 
-RENEWABLE_FUELS = {"solar", "wind"}
-MUST_RUN_FUELS = {"nuclear"}
+RENEWABLE_FUELS: set[str] = _dispatch_cfg["renewable_fuels"]
+MUST_RUN_FUELS: set[str] = _dispatch_cfg["must_run_fuels"]
 
 
 def coal_price_jpy_mmbtu(
